@@ -1,56 +1,84 @@
-# Welcome to your Expo app 👋
+# MacroLens 📸🍽️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Snap a photo of your meal, get an instant calorie & macro estimate, and track your day.**
+A production-grade mobile calorie tracker built with Expo (SDK 54) and Supabase — cloud-synced, offline-capable, and RLS-secured per user.
 
-## Get started
+> Built end-to-end in collaboration with **Claude Code**. See [`CLAUDE.md`](CLAUDE.md) for the full architecture write-up.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## Screenshots
 
-2. Start the app
+| Today | Progress | Settings |
+|:---:|:---:|:---:|
+| ![Today](assets/screenshots/today.png) | ![Progress](assets/screenshots/progress.png) | ![Settings](assets/screenshots/settings.png) |
 
-   ```bash
-   npx expo start
-   ```
+| Sign in | Onboarding |
+|:---:|:---:|
+| ![Login](assets/screenshots/login.png) | ![Onboarding](assets/screenshots/onboarding.png) |
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Features
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **AI photo → nutrition** — point the camera at a meal; an Anthropic-backed vision model returns calories, protein, carbs, and fat, which you can review and edit before logging.
+- **Calorie & macro rings** — a Cal AI-style dashboard with animated progress rings for the day's goals.
+- **Streaks** — a logging streak recomputed from your history (pure, unit-tested logic).
+- **Body-weight progress** — log your weight and watch the trend on a 90D / 6M / 1Y / ALL line chart.
+- **Personalized plan** — onboarding computes recommended calories & macros via Mifflin-St Jeor BMR, FAO/WHO activity multipliers, ISSN protein, and IOM AMDR ranges.
+- **Cloud sync + offline** — everything persists to Supabase and is cached with TanStack Query, so screens render instantly (even offline) and revalidate in the background.
+- **Full auth** — email/password and Google OAuth, password reset via in-app OTP, and self-service account deletion (server-side cascade).
 
-## Get a fresh project
+## Tech stack
 
-When you're ready, run:
+- **App** — [Expo SDK 54](https://docs.expo.dev/versions/v54.0.0/), Expo Router (file-based routing), React Native, TypeScript (strict), React Compiler.
+- **State/data** — [TanStack Query](https://tanstack.com/query) with AsyncStorage persistence.
+- **Backend** — [Supabase](https://supabase.com): Postgres + Row-Level Security, Auth, Storage (private meal-photo bucket), and Edge Functions.
+- **AI** — Anthropic Claude, called through a Supabase **Edge Function proxy** so the API key never ships in the client bundle.
+- **UI** — Reanimated, SVG progress rings, a light-only Cal AI-inspired design system.
+
+## Architecture at a glance
+
+Camera → AI nutrition estimate → review/edit → log. All CRUD flows through a single data boundary (`lib/entries.ts`) backed by Supabase with per-user RLS; screens never touch `supabase.from(...)` directly. The session lives in encrypted secure storage; reads are cached and revalidated on focus.
+
+The full architecture — provider stack, the three-state auth/onboarding gate, the data layer, and the database schema/migrations — is documented in [`CLAUDE.md`](CLAUDE.md).
+
+## Getting started
 
 ```bash
-npm run reset-project
+git clone <this-repo>
+cd macrolens
+npm install
+
+cp .env.example .env   # fill in your Supabase URL + anon key
+npm start              # press i / a / w for iOS / Android / web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Environment
 
-### Other setup steps
+`.env` (see [`.env.example`](.env.example)) needs the public Supabase values, read at bundle time:
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon key is public by design (protected by RLS).
 
-## Learn more
+> **The Anthropic key is never a client env var.** The AI call is proxied by the `analyze-meal` Edge Function, which holds `ANTHROPIC_API_KEY` as a **server-side Supabase secret** (`supabase secrets set ANTHROPIC_API_KEY=…`).
 
-To learn more about developing your project with Expo, look at the following resources:
+### Supabase (local)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+supabase start        # boot the local stack (Docker)
+supabase db reset     # apply migrations from scratch
+```
 
-## Join the community
+### Tests
 
-Join our community of developers creating universal apps.
+Two pure-logic specs run directly under `tsx` (no framework):
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx tsx lib/streak.test.ts          # streak rules
+npx tsx lib/nutrition-plan.test.ts  # calorie/macro plan math
+```
+
+## License
+
+[MIT](LICENSE) © 2026 Roi Izchak

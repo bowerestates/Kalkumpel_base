@@ -1,0 +1,4 @@
+-- Seed data for `supabase db reset` (referenced by [db.seed] in config.toml).
+-- Intentionally empty: per-user rows are created by the app + the handle_new_user
+-- trigger, so there's nothing to seed. This file exists so the CLI's configured
+-- seed path resolves instead of pointing at a missing file.

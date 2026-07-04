@@ -36,8 +36,22 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-example
+app-example
 
 # generated native folders
 /ios
 /android
+
+# local secrets
+.env
+.env.local
+client_secret_*.json
+
+# local agent / tooling artifacts — not part of the app
+.codex/
+.agents/
+.playwright-cli/
+home.yaml
+.claude/agents/
+.claude/skills/
+.claude/assets/
